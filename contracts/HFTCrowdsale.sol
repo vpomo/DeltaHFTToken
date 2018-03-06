@@ -313,28 +313,18 @@ contract Crowdsale is Ownable {
     // address where funds are collected
     address public wallet;
 
-    // start and end timestamps where investments are allowed (both inclusive)
-    uint256 internal startTime;
-    uint256 internal endTime;
-
     // amount of raised money in wei
     uint256 public weiRaised;
     uint256 public tokenAllocated;
     uint256 public hardWeiCap = 14412 * (10 ** 18);
 
     function Crowdsale(
-    address _wallet,
-    uint256 _startTime,
-    uint256 _endTime
+    address _wallet
     )
     public
     {
         require(_wallet != address(0));
         wallet = _wallet;
-        require(0 < _startTime && 0 < _endTime);
-        require(_startTime < _endTime);
-        startTime = _startTime;
-        endTime = _endTime;
     }
 }
 
@@ -354,6 +344,7 @@ contract HFTCrowdsale is Ownable, Crowdsale, MintableToken {
     uint256 public fundForSale = 30 * (10 ** 6) * (10 ** uint256(decimals));
 
     uint256 public countInvestor;
+    bool public saleToken = true;
 
     event TokenPurchase(address indexed beneficiary, uint256 value, uint256 amount);
     event TokenLimitReached(uint256 tokenRaised, uint256 purchasedToken);
@@ -361,12 +352,10 @@ contract HFTCrowdsale is Ownable, Crowdsale, MintableToken {
     event Finalized();
 
     function HFTCrowdsale(
-    address _owner,
-    uint256 _startTime,
-    uint256 _endTime
+    address _owner
     )
     public
-    Crowdsale(_owner, _startTime, _endTime)
+    Crowdsale(_owner)
     {
 
         require(_owner != address(0));
@@ -389,12 +378,18 @@ contract HFTCrowdsale is Ownable, Crowdsale, MintableToken {
         buyTokens(msg.sender);
     }
 
+    function startSale() public onlyOwner {
+        saleToken = true;
+    }
+
+    function stopSale() public onlyOwner {
+        saleToken = false;
+    }
+
     // low level token purchase function
     function buyTokens(address _investor) public inState(State.Active) payable returns (uint256){
         require(_investor != address(0));
-        uint256 currentTime = now;
-        //currentTime = 1524182400; //Fri, 20 Apr 2018 00:00:00 GMT
-        require(startTime <= currentTime && currentTime <= endTime);
+        require(saleToken == true);
         uint256 weiAmount = msg.value;
         uint256 tokens = validPurchaseTokens(weiAmount);
         if (tokens == 0) {revert();}
